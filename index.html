@@ -253,12 +253,40 @@
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- FIREBASE SETUP ---
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        // --- FIREBASE CONFIGURATION ---
+        
+        // IMPORTANT: FOR VERCEL DEPLOYMENT, FILL IN THIS OBJECT
+        // You can find these values in your Firebase Console -> Project Settings -> General
+        const MANUAL_CONFIG = {
+            apiKey: "AIzaSyBdqOJ7hJJZ6LGx4zF34dJTsYhBtzhr9k0",
+            authDomain: "doomscroll-609d3.firebaseapp.com",
+            projectId: "doomscroll-609d3",
+            storageBucket: "doomscroll-609d3.firebasestorage.app",
+            messagingSenderId: "384355949274",
+            appId: "1:384355949274:web:d74a516b3356997e0b23e3"
+        };
+
+        // This logic selects the right config:
+        // 1. If running in the AI preview, it uses the injected __firebase_config
+        // 2. If running on Vercel/Localhost, it uses MANUAL_CONFIG
+        let firebaseConfig;
+        if (typeof __firebase_config !== 'undefined') {
+            firebaseConfig = JSON.parse(__firebase_config);
+        } else {
+            firebaseConfig = MANUAL_CONFIG;
+            // Deployment Safety Check
+            if (firebaseConfig.apiKey.includes("REPLACE")) {
+                alert("DEPLOYMENT ERROR: You need to edit the 'MANUAL_CONFIG' object in the index.html file with your actual Firebase credentials before deploying.");
+            }
+        }
+
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        
+        // Use a fixed App ID for public deployment so everyone sees the same data
+        // You can change 'doomscroll-public' to any unique string you want
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'doomscroll-public';
         
         let currentUser = null;
         const statusEl = document.getElementById('network-status');
@@ -297,9 +325,9 @@
             scrollSpeedBase: 0,   
             maxScreens: 512,       
             hues: [355, 340, 0, 5, 20, 55, 80, 25],
-            friction: 0.993,
+            friction: 0.99,
             minVelocity: 0.05,
-            impulseStrength: 1,   
+            impulseStrength: 8,   
             snapThreshold: 0.5,   
             snapStrength: 0.05,    
             verticalGap: 10,        
@@ -606,7 +634,7 @@
             getTimeRange(count) {
                 // If merging (going down), use fixed 4 seconds
                 if (this.direction === -1) {
-                    return [2, 2];
+                    return [4, 4]; // Fixed as per request
                 }
                 
                 // If splitting (going up), use the organic timing curve
@@ -717,7 +745,7 @@
                 }
 
                 // AI
-                const isMovingFast = Math.abs(this.velocity) > 1.5;
+                const isMovingFast = Math.abs(this.velocity) > 2.0;
                 if (!this.swiping && now - this.lastActionTime > this.timeToNextScroll) {
                     if (isMovingFast && Math.random() > 0.1) {
                         this.timeToNextScroll = 500; 
@@ -725,7 +753,7 @@
                         const r = Math.random();
                         if (r > 0.9) {
                             // DOOM SCROLL (Aggressive)
-                            this.flick(0.9 + Math.random());
+                            this.flick(1.5 + Math.random());
                             this.timeToNextScroll = 1000 + Math.random() * 2000; 
                         } else if (r > 0.45) {
                             // CASUAL READ (Standard)
@@ -738,7 +766,7 @@
                         } else {
                             // SCROLL BACK (Interest caught)
                             // A gentle nudge upwards, weaker than the downward scroll
-                            this.flick(-0.2); 
+                            this.flick(-0.35); 
                             this.timeToNextScroll = 1500 + Math.random() * 2000; // Pause to "read"
                         }
                         this.lastActionTime = now;
@@ -945,7 +973,7 @@
                 child.cards = parent.cards.map(c => ({ y: c.y, content: c.content }));
                 
                 // Fix for "Erratic" start: Delay the AI for new screens so they don't ALL flick immediately
-                child.timeToNextScroll = 1000 + Math.random() * 4000; 
+                child.timeToNextScroll = 1500 + Math.random() * 3000; 
                 
                 nextGeneration.push(parent);
                 nextGeneration.push(child);
